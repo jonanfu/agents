@@ -75,6 +75,12 @@ class TopicsState(TypedDict):
     # Messages have the type "list". The `add_messages` function
     # in the annotation defines how this state key should be updated
     # (in this case, it appends messages to the list, rather than overwriting them)
-    messages: Annotated[list, add_messages]
+
+    #messages: Annotated[list, add_messages]
     topic: str
+    question: Optional[str] = None
+    status: str  # "start" para explicación, "question" para responder preguntas
+    response: Optional[str] = None  # Se llenará con la respuesta generada
+    id_user: str
+    messages: List[Dict[str, str]]  # Agregamos el historial de mensajes
 

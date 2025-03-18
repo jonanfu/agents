@@ -106,15 +106,15 @@ question_agent.name = "Question Generation"
 # Codigo para el chat
 # Función para inicializar el chatbot con el prompt del tema
 def initialize_chat(state: TopicsState):
+    print('entra initialize')
     model = load_model()
     prompt = TOPICS_PROMPT.format(topic=state["topic"])
-
 
     # Crear un mensaje del sistema para la generación de tópicos
     system_message = {"role": "system", "content": SYSTEM_PROMPT}
     
     # Crear un mensaje interno para solicitar tópicos (no se muestra al usuario)
-    internal_message = {"role": "user", "content": TOPICS_PROMPT.format(topic=state["topic"]), "visible": False}
+    internal_message = {"role": "user", "content": prompt, "visible": False}
 
     # Obtener la respuesta del modelo con los tópicos
     messages = [system_message, internal_message]
@@ -128,35 +128,77 @@ def initialize_chat(state: TopicsState):
     
     # Inicializamos el estado con el mensaje del sistema y la respuesta del asistente
     return {
-        "messages": [system_message, assistant_message], 
         "topic": state["topic"],
+        "question": None,
+        "status": "done",
+        "response": response.content,
+        "id_user": state["id_user"],
+        "messages": [system_message, assistant_message],  # Aquí inicializamos messages
     }
 
 # Código para el chat
-def chatbot(state: TopicsState):
+def chatbot(state: TopicsState) -> TopicsState:
+    print('entra chatbot')
     model = load_model()
-    
-    # Invocamos al modelo con todos los mensajes actuales
-    # El sistema ya tiene el prompt de QA configurado desde initialize_chat
-    response = model.invoke(state["messages"])
-    
-    # Devolvemos la respuesta del asistente
-    return {"messages": [{"role": "assistant", "content": response.content}]}
 
+    # Asegurar que el historial de mensajes contiene la introducción del tema
+    if not state["messages"]:
+        system_message = {"role": "system", "content": SYSTEM_PROMPT}
+        initial_prompt = TOPICS_PROMPT.format(topic=state["topic"])
+        internal_message = {"role": "user", "content": initial_prompt, "visible": False}
+        response = model.invoke([system_message, internal_message])
+        assistant_message = {"role": "assistant", "content": response.content}
+
+        state["messages"] = [system_message, internal_message, assistant_message]
+
+    # Agregar la pregunta actual al historial
+    if state["question"]:
+        user_message = {"role": "user", "content": state["question"]}
+        state["messages"].append(user_message)
+
+    # Invocar el modelo con el historial de mensajes
+    response = model.invoke(state["messages"])
+    assistant_message = {"role": "assistant", "content": response.content}
+    state["messages"].append(assistant_message)
+
+    return {
+        "topic": state["topic"],
+        "question": state["question"],
+        "status": "done",
+        "response": response.content,
+        "id_user": state["id_user"],
+        "messages": state["messages"],
+    }
+
+
+# Definir una función de decisión para el flujo
+def conditional_routing(state: TopicsState):
+    print(state["status"])
+    return state["status"]
 
 # Configuración del grafo de estados
 workflow_topics = StateGraph(TopicsState)
+
+# agregar nodos
 workflow_topics.add_node("initialize", initialize_chat)
 workflow_topics.add_node("chatbot", chatbot)
 
 # Definir el flujo
-workflow_topics.add_edge(START, "initialize")
-workflow_topics.add_edge("initialize", "chatbot")
+
+# Usar conditional_edge para decidir el siguiente nodo
+workflow_topics.add_conditional_edges(
+    START,  # Nodo de inicio
+    conditional_routing,  # Función que decide el siguiente nodo
+    {
+        "initialize": "initialize",  # Si la función retorna "initialize", va al nodo "initialize"
+        "chatbot": "chatbot",  # Si la función retorna "chatbot", va al nodo "chatbot"
+    }
+)
+
+# Terminar flujo después de cada nodo
+workflow_topics.add_edge("initialize", END)
 workflow_topics.add_edge("chatbot", END)
 
 # Compilar el agente
 topics_agent = workflow_topics.compile()
 topics_agent.name = "Topics Generation"
-
-
-
