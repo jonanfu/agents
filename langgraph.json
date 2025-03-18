@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "question_agent": "./src/react_agent/graph.py:question_agent",
+    "topics_agent": "./src/react_agent/graph.py:topics_agent"
+  },
+  "env": ".env"
+}
