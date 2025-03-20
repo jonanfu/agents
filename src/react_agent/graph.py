@@ -4,24 +4,18 @@ Works with a chat model with tool calling support.
 """
 import logging
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Literal
 from langgraph.graph import StateGraph, END, START
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
-from react_agent.utils import generate_questions, save_to_cosmos
-from react_agent.state import QuestionState, TopicsState
+from react_agent.state import QuestionState, TopicsState, FeedbackState, GenerateTopicsState
 from react_agent.configuration import Config
-from react_agent.prompts import TOPICS_PROMPT, SYSTEM_PROMPT
+from react_agent.prompts import *
+from react_agent.utils import *
+import json
+import uuid
 
-def load_model() -> AzureChatOpenAI:
-    """Load and configure the Azure OpenAI model."""
-    return AzureChatOpenAI(
-        azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-        azure_deployment=Config.AZURE_DEPLOYMENT_NAME,
-        api_version=Config.AZURE_OPENAI_API_VERSION,
-        api_key=Config.AZURE_OPENAI_API_KEY,
-        temperature=0.7,
-    )
+
 
 def estado_inicial(state: QuestionState) -> QuestionState:
 
@@ -202,3 +196,125 @@ workflow_topics.add_edge("chatbot", END)
 # Compilar el agente
 topics_agent = workflow_topics.compile()
 topics_agent.name = "Topics Generation"
+
+
+
+# Funciones para el flujo de extracion de topics
+
+def topics_from_training_description_node(state: GenerateTopicsState) -> GenerateTopicsState:
+    """Generar topics desde la descripción de la formación."""
+    model = load_model()
+    
+    logging.info("Generando topics desde la descripción de la formación...")
+    logging.info(state)
+    nuevo_estado = state.copy()
+    
+    prompt = TOPICS_FROM_TRAINING_DESCRIPTION_PROMPT.format(training_name=nuevo_estado["training_name"], description=nuevo_estado["description"])
+    response = model.invoke(prompt)
+
+    if not response or not response.content:
+        print("No se recibió respuesta del modelo")
+        nuevo_estado["status"] = "error"
+    else:
+        result = json.loads(response.content)
+        nuevo_estado["topics_json"] = result
+        nuevo_estado["status"] = "generated"
+        return nuevo_estado
+
+
+def save_embeddings_node(state: GenerateTopicsState) -> GenerateTopicsState:
+    """Guardar embeddings en Azure Search."""
+    logging.info("Guardando embeddings en Azure Search...")
+    logging.info(state)
+    nuevo_estado = state.copy()
+    nuevo_estado["index_name"] = str(uuid.uuid4())
+    save_embeddings(nuevo_estado["index_name"], nuevo_estado["url"])
+    nuevo_estado["status"] = "saved"
+    return nuevo_estado
+
+def generate_topics_node(state: GenerateTopicsState) -> GenerateTopicsState:
+    """Generar topics."""
+    logging.info("Generando topics...")
+    logging.info(state)
+    nuevo_estado = state.copy()
+    topics_list = generate_topics(state["index_name"])
+    nuevo_estado["topics_list"] = topics_list
+    nuevo_estado["status"] = "generated"
+    return nuevo_estado
+
+def generate_json_topics_node(state: GenerateTopicsState) -> GenerateTopicsState:
+    """Generar JSON de topics."""
+    logging.info("Generando JSON de topics...")
+    logging.info(state)
+    nuevo_estado = state.copy()
+    topics_json = generate_json_topics(nuevo_estado["topics_list"], nuevo_estado["training_name"], nuevo_estado["url"])
+    nuevo_estado["topics_json"] = topics_json
+    nuevo_estado["status"] = "generated_json"
+    return nuevo_estado
+
+def save_topics_node(state: GenerateTopicsState) -> GenerateTopicsState:
+    """Guardar JSON de topics en Cosmos DB."""
+    logging.info("Guardando JSON de topics en Cosmos DB...")
+    logging.info(state)
+    nuevo_estado = state.copy()
+    save_topics(state["topics_json"], "Topics")
+    nuevo_estado["status"] = "saved"
+    return nuevo_estado
+
+def route(state: GenerateTopicsState):
+    if "url" in state and state["url"].strip():  # Verifica si hay texto (no vacío)
+        return "save_embeddings"
+    else:
+        return "topics_from_training_description"
+
+workflow_content = StateGraph(GenerateTopicsState)
+    
+# Añadir nodos
+workflow_content.add_node("topics_from_training_description", topics_from_training_description_node)
+workflow_content.add_node("save_embeddings", save_embeddings_node)
+workflow_content.add_node("generate_topics", generate_topics_node)
+workflow_content.add_node("generate_json_topics", generate_json_topics_node)
+#workflow_content.add_node("save_topics", save_topics_node)
+    
+# Definir transiciones
+workflow_content.add_conditional_edges(
+    START,
+    route,
+    {
+        "topics_from_training_description": "topics_from_training_description",
+        "save_embeddings": "save_embeddings",
+    }
+)
+workflow_content.add_edge("topics_from_training_description", END)
+
+workflow_content.add_edge("save_embeddings", "generate_topics")
+workflow_content.add_edge("generate_topics", "generate_json_topics")
+
+workflow_content.add_edge("generate_json_topics", END)
+    
+# Estado inicial
+content_agent = workflow_content.compile()
+content_agent.name = "Content Extraction"
+
+
+def feedback_node(state: FeedbackState) -> FeedbackState:
+    """Generar feedback."""
+    model = load_model()
+
+    logging.info("Generando feedback...")
+    logging.info(state)
+    nuevo_estado = state.copy()
+    prompt = FEEDBACK_PROMPT.format(cuestionario=nuevo_estado["cuestionario"])
+    response = model.invoke(prompt)
+    nuevo_estado["feedback"] = response.content
+    nuevo_estado["status"] = "generated"
+    return nuevo_estado
+
+workflow_feedback = StateGraph(FeedbackState)
+workflow_feedback.add_node("feedback_node", feedback_node)
+
+workflow_feedback.add_edge(START, "feedback_node")
+workflow_feedback.add_edge("feedback_node", END)
+
+feedback_agent = workflow_feedback.compile()
+feedback_agent.name = "Feedback"

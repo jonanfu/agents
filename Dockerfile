@@ -12,5 +12,7 @@ COPY . /app
 # Instalar dependencias con Poetry
 RUN poetry install
 
+EXPOSE 8000
+
 # Ejecutar la aplicación
 CMD ["poetry", "run", "uvicorn", "src.react_agent.api:app", "--host", "0.0.0.0", "--port", "8000"]

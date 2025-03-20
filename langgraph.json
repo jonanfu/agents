@@ -2,7 +2,9 @@
   "dependencies": ["."],
   "graphs": {
     "question_agent": "./src/react_agent/graph.py:question_agent",
-    "topics_agent": "./src/react_agent/graph.py:topics_agent"
+    "topics_agent": "./src/react_agent/graph.py:topics_agent",
+    "content_agent": "./src/react_agent/graph.py:content_agent",
+    "feedback_agent": "./src/react_agent/graph.py:feedback_agent"
   },
   "env": ".env"
 }

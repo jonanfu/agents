@@ -1,10 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from react_agent.graph import question_agent, topics_agent
-from react_agent.state import QuestionState, TopicsState#, MessageRequest, MessageResponse
-#from react_agent.utils import dict_to_messages, messages_to_dict, process_message
+from react_agent.graph import question_agent, topics_agent, feedback_agent, content_agent
+from react_agent.state import QuestionState, TopicsState, FeedbackState, GenerateTopicsState
 import logging
-
+from typing import List, Dict, Any
 app = FastAPI()
 
 # Definir el modelo Pydantic para el request
@@ -17,6 +16,15 @@ class ChatRequest(BaseModel):
     topic: str = Field(..., description="El tema sobre el que se pregunta")
     question: str | None = Field(None, description="La pregunta opcional dentro del tema")
     id_user: str
+
+class TopicsRequest(BaseModel):
+    training_name: str
+    description: str
+    url: str
+
+class FeedbackRequest(BaseModel):
+    cuestionario: Dict[str, Any]
+
 
 @app.post("/generate_questions")
 async def generate_questions(request: QuestionRequest):
@@ -68,9 +76,45 @@ async def chat(request: ChatRequest):
     logging.info(f"Procesando request: {initial_state}")
     print(f"Procesando request: {initial_state}")
 
-    final_state = await topics_agent.ainvoke(initial_state)
+    final_state = await topics_agent.invoke(initial_state)
     return {
         "topic": request.topic,
         "question": request.question,
         "response": final_state["response"]
     }
+
+
+@app.post("/generate_topics")
+async def generate_topics(request: TopicsRequest):
+    """
+    Genera topics para un texto dado.
+    """
+    initial_state = GenerateTopicsState(
+        training_name=request.training_name,
+        description=request.description,
+        url=request.url,
+        status="start",
+        topics_list=[],
+        topics_json=[]
+    )   
+
+    final_state = await content_agent.ainvoke(initial_state)
+    return {
+        "topics_json": final_state["topics_json"]
+    }
+
+@app.post("/generate_feedback")
+async def generate_feedback(cuestionarioData: Dict):
+    """
+    Genera feedback para un cuestionario dado.
+    """
+    initial_state = FeedbackState(
+        cuestionario=cuestionarioData,
+        status="start"
+    )
+
+    final_state = await feedback_agent.ainvoke(initial_state)
+    return {
+        "feedback": final_state["feedback"]
+    }
+

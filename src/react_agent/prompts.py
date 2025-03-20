@@ -89,3 +89,61 @@ TOPICS_PROMPT = """
     Devuelve solo el texto en formato Markdown sin explicaciones adicionales.
     """
 
+GENERATE_JSON_TOPICS_PROMPT = """
+Dada la siguiente lista de temas [{lista}], genera un JSON con la siguiente estructura:
+
+{{
+    "trainingName": "{training_name}",
+    "description": "<Descripción detallada del curso>",
+    "attachment": "{url}",
+    "topics": [
+        {{
+            "topicName": "<Nombre del tema>",
+            "items": [
+                {{
+                    "itemName": "<Nombre del subtema o concepto dentro del tema>"
+                }}
+            ]
+        }}
+    ]
+}}
+
+El JSON debe ser válido y cumplir con la estructura especificada, sin incluir texto adicional fuera del JSON.
+"""
+
+
+
+TOPICS_GET_PROMPT = """
+    Extrae los temas principales de este contenido: {content}
+"""
+
+
+TOPICS_FROM_TRAINING_DESCRIPTION_PROMPT = """
+Dada la siguiente {training_name} y {description}, genera los temas principales de la capacitación. Genera un JSON con la siguiente estructura:
+
+{{
+    "trainingName": "{training_name}",
+    "description": "{description}",
+    "attachment": "",
+    "topics": [
+        {{
+            "topicName": "<Nombre del tema>",
+            "items": [
+                {{
+                    "itemName": "<Nombre del subtema o concepto dentro del tema>"
+                }}
+            ]
+        }}
+    ]
+}}
+
+Asegúrate de que la descripción del curso sea clara y concisa, resaltando los objetivos de aprendizaje y las habilidades que se desarrollarán. La lista de temas y subtemas debe reflejar con precisión la estructura del curso, organizando los contenidos de manera lógica.
+
+No incluyas texto adicional fuera del JSON. El JSON debe ser válido y cumplir con la estructura especificada.
+"""
+
+FEEDBACK_PROMPT = """
+    A partir de las respuestas proporcionadas en el siguiente {cuestionario}, brinda al usuario un feedback detallado sobre su nivel de conocimientos. Destaca los aspectos positivos y señala áreas de mejora específicas para fortalecer su comprensión del tema.
+"""
+
+

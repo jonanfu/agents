@@ -84,3 +84,20 @@ class TopicsState(TypedDict):
     id_user: str
     messages: List[Dict[str, str]]  # Agregamos el historial de mensajes
 
+
+# Definición de estados para LangGraph
+class GenerateTopicsState(TypedDict):
+    training_name: str
+    description: str
+    index_name: str
+    url: Optional[str]
+    topics_list: List[str]
+    topics_json: List[Dict[str, Any]]
+    status: str
+
+
+class FeedbackState(TypedDict):
+    cuestionario: str
+    feedback: str
+    status: str
+
