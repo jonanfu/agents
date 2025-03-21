@@ -1,241 +1,189 @@
-# LangGraph ReAct Agent Template
+# AI Agents for supported employment job coaches
 
-[![CI](https://github.com/langchain-ai/react-agent/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/langchain-ai/react-agent/actions/workflows/unit-tests.yml)
-[![Integration Tests](https://github.com/langchain-ai/react-agent/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/langchain-ai/react-agent/actions/workflows/integration-tests.yml)
-[![Open in - LangGraph Studio](https://img.shields.io/badge/Open_in-LangGraph_Studio-00324d.svg?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4NS4zMzMiIGhlaWdodD0iODUuMzMzIiB2ZXJzaW9uPSIxLjAiIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTEzIDcuOGMtNi4zIDMuMS03LjEgNi4zLTYuOCAyNS43LjQgMjQuNi4zIDI0LjUgMjUuOSAyNC41QzU3LjUgNTggNTggNTcuNSA1OCAzMi4zIDU4IDcuMyA1Ni43IDYgMzIgNmMtMTIuOCAwLTE2LjEuMy0xOSAxLjhtMzcuNiAxNi42YzIuOCAyLjggMy40IDQuMiAzLjQgNy42cy0uNiA0LjgtMy40IDcuNkw0Ny4yIDQzSDE2LjhsLTMuNC0zLjRjLTQuOC00LjgtNC44LTEwLjQgMC0xNS4ybDMuNC0zLjRoMzAuNHoiLz48cGF0aCBkPSJNMTguOSAyNS42Yy0xLjEgMS4zLTEgMS43LjQgMi41LjkuNiAxLjcgMS44IDEuNyAyLjcgMCAxIC43IDIuOCAxLjYgNC4xIDEuNCAxLjkgMS40IDIuNS4zIDMuMi0xIC42LS42LjkgMS40LjkgMS41IDAgMi43LS41IDIuNy0xIDAtLjYgMS4xLS44IDIuNi0uNGwyLjYuNy0xLjgtMi45Yy01LjktOS4zLTkuNC0xMi4zLTExLjUtOS44TTM5IDI2YzAgMS4xLS45IDIuNS0yIDMuMi0yLjQgMS41LTIuNiAzLjQtLjUgNC4yLjguMyAyIDEuNyAyLjUgMy4xLjYgMS41IDEuNCAyLjMgMiAyIDEuNS0uOSAxLjItMy41LS40LTMuNS0yLjEgMC0yLjgtMi44LS44LTMuMyAxLjYtLjQgMS42LS41IDAtLjYtMS4xLS4xLTEuNS0uNi0xLjItMS42LjctMS43IDMuMy0yLjEgMy41LS41LjEuNS4yIDEuNi4zIDIuMiAwIC43LjkgMS40IDEuOSAxLjYgMi4xLjQgMi4zLTIuMy4yLTMuMi0uOC0uMy0yLTEuNy0yLjUtMy4xLTEuMS0zLTMtMy4zLTMtLjUiLz48L3N2Zz4=)](https://langgraph-studio.vercel.app/templates/open?githubUrl=https://github.com/langchain-ai/react-agent)
+This project implements intelligent AI agents designed to generate educational content for employee onboarding and training. Built with Microsoft Azure services and advanced AI models, the system streamlines the learning experience for new employees.
 
-This template showcases a [ReAct agent](https://arxiv.org/abs/2210.03629) implemented using [LangGraph](https://github.com/langchain-ai/langgraph), designed for [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio). ReAct agents are uncomplicated, prototypical agents that can be flexibly extended to many tools.
+## 🧠 Project Overview
 
-![Graph view in LangGraph studio UI](./static/studio_ui.png)
+The solution employs specialized AI agents to:
 
-The core logic, defined in `src/react_agent/graph.py`, demonstrates a flexible ReAct agent that iteratively reasons about user queries and executes actions, showcasing the power of this approach for complex problem-solving tasks.
+* ✅ Generate multiple-choice questions for knowledge assessment
+* 📚 Coach employees on various topics
+* 📂 Generate and classify relevant topics for training
+* 🔄 Collect and analyze user feedback for continuous improvement
 
-## What it does
+## 🛠️ Technologies Used
 
-The ReAct agent:
+* 🔧 **LangGraph**: For constructing and managing AI agent workflows
+* 🔍 **Azure AI Search**: To store and retrieve embeddings for topic analysis
+* 🤖 **Azure OpenAI**: For natural language processing and question generation
+* 🐍 **FastAPI**: Backend framework for API development
+* ☁️ **Azure App Services**: For deploying and scaling the FastAPI application
+* 💾 **Cosmos DB**: For storing user feedback and interactions
 
-1. Takes a user **query** as input
-2. Reasons about the query and decides on an action
-3. Executes the chosen action using available tools
-4. Observes the result of the action
-5. Repeats steps 2-4 until it can provide a final answer
+## 📁 Project Structure
 
-By default, it's set up with a basic set of tools, but can be easily extended with custom tools to suit various use cases.
+* 🧠 **Agents**: AI agents for topic generation, coaching, and feedback
+* 🔧 **FastAPI Backend**: Manages API endpoints for interacting with AI agents
+* 🔍 **Azure AI Search**: Embeddings for fast and accurate topic retrieval
+* 💾 **Cosmos DB**: Stores feedback and learning analytics
 
-## Getting Started
+## 🚀 Installation
 
-Assuming you have already [installed LangGraph Studio](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download), to set up:
+### 1. Setting up Development Environment
 
-1. Create a `.env` file.
+Create a virtual environment to isolate project dependencies:
 
 ```bash
-cp .env.example .env
+# Create a virtual environment
+python -m venv .venv
+
+# Activate the virtual environment
+# On Windows
+.venv\Scripts\activate
+# On macOS/Linux
+source .venv/bin/activate
 ```
 
-2. Define required API keys in your `.env` file.
+### 2. Installing Poetry
 
-The primary [search tool](./src/react_agent/tools.py) [^1] used is [Tavily](https://tavily.com/). Create an API key [here](https://app.tavily.com/sign-in).
+Install Poetry for dependency management:
 
-<!--
-Setup instruction auto-generated by `langgraph template lock`. DO NOT EDIT MANUALLY.
--->
+```bash
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
 
-### Setup Model
-
-The defaults values for `model` are shown below:
-
-```yaml
-model: anthropic/claude-3-5-sonnet-20240620
+# Verify installation
+poetry --version
 ```
 
-Follow the instructions below to get set up, or pick one of the additional options.
+### 3. Installing Dependencies
 
-#### Anthropic
+Use Poetry to install all project dependencies:
 
-To use Anthropic's chat models:
-
-1. Sign up for an [Anthropic API key](https://console.anthropic.com/) if you haven't already.
-2. Once you have your API key, add it to your `.env` file:
-
-```
-ANTHROPIC_API_KEY=your-api-key
-```
-#### OpenAI
-
-To use OpenAI's chat models:
-
-1. Sign up for an [OpenAI API key](https://platform.openai.com/signup).
-2. Once you have your API key, add it to your `.env` file:
-```
-OPENAI_API_KEY=your-api-key
+```bash
+# Install dependencies
+poetry install
 ```
 
+### 4. Running the Agents
 
+To run and develop the LangGraph agents:
 
+```bash
+# Start the LangGraph development server
+langgraph dev
+```
 
+### 5. Running the API Endpoints
 
-<!--
-End setup instructions
--->
+Start the FastAPI application:
 
+```bash
+# Start the FastAPI development server
+fastapi dev src/react_agent/api.py
+```
 
-3. Customize whatever you'd like in the code.
-4. Open the folder LangGraph Studio!
+Access the API documentation at `http://localhost:8000/docs`
 
-## How to customize
+## 🌐 Environment Variables
 
-1. **Add new tools**: Extend the agent's capabilities by adding new tools in [tools.py](./src/react_agent/tools.py). These can be any Python functions that perform specific tasks.
-2. **Select a different model**: We default to Anthropic's Claude 3 Sonnet. You can select a compatible chat model using `provider/model-name` via configuration. Example: `openai/gpt-4-turbo-preview`.
-3. **Customize the prompt**: We provide a default system prompt in [prompts.py](./src/react_agent/prompts.py). You can easily update this via configuration in the studio.
+Set the following environment variables to ensure proper configuration:
 
-You can also quickly extend this template by:
+### [Azure OpenAI Configuration](https://portal.azure.com/#blade/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/OpenAI)
+* `AZURE_OPENAI_API_KEY`
+* `AZURE_OPENAI_ENDPOINT`
+* `AZURE_DEPLOYMENT_NAME=gpt-35-turbo-deployment`
+* `AZURE_OPENAI_API_VERSION` - [API Reference](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference)
 
-- Modifying the agent's reasoning process in [graph.py](./src/react_agent/graph.py).
-- Adjusting the ReAct loop or adding additional steps to the agent's decision-making process.
+### [Azure Cosmos DB Configuration](https://portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.DocumentDB%2FdatabaseAccounts)
+* `COSMOS_ENDPOINT`
+* `COSMOS_KEY`
+* `COSMOS_DATABASE_NAME`
+* `COSMOS_CONTAINER_NAME`
 
-## Development
+### [Langsmith Configuration](https://www.langsmith.com/dashboard)
+* `LANGSMITH_PROJECT`
+* `LANGSMITH_API_KEY` - [API Keys](https://www.langsmith.com/dashboard/settings/api-keys)
 
-While iterating on your graph, you can edit past state and rerun your app from past states to debug specific nodes. Local changes will be automatically applied via hot reload. Try adding an interrupt before the agent calls tools, updating the default system message in `src/react_agent/configuration.py` to take on a persona, or adding additional nodes and edges!
+### [Azure Search Configuration](https://portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.Search%2FsearchServices)
+* `VECTOR_STORE_ADDRESS`
+* `VECTOR_STORE_PASSWORD`
+* `VECTOR_STORE_INDEX_NAME`
 
-Follow up requests will be appended to the same thread. You can create an entirely new thread, clearing previous history, using the `+` button in the top right.
+### [Azure Text Embedding Configuration](https://portal.azure.com/#blade/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/OpenAI)
+* `AZURE_TEXT_EMBEDDING_ENDPOINT`
+* `AZURE_TEXT_EMBEDDING_API_KEY`
+* `AZURE_TEXT_EMBEDDING_API_VERSION` - [API Reference](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference)
+* `AZURE_TEXT_EMBEDDING_DEPLOYMENT=text-embedding-3-large`
 
-You can find the latest (under construction) docs on [LangGraph](https://github.com/langchain-ai/langgraph) here, including examples and other references. Using those guides can help you pick the right patterns to adapt here for your use case.
+## 🚀 Azure Deployment
 
-LangGraph Studio also integrates with [LangSmith](https://smith.langchain.com/) for more in-depth tracing and collaboration with teammates.
+Follow these steps to deploy the application to Azure:
 
-[^1]: https://python.langchain.com/docs/concepts/#tools
+### 1. Login to Azure CLI
 
-<!--
-Configuration auto-generated by `langgraph template lock`. DO NOT EDIT MANUALLY.
-{
-  "config_schemas": {
-    "agent": {
-      "type": "object",
-      "properties": {
-        "model": {
-          "type": "string",
-          "default": "anthropic/claude-3-5-sonnet-20240620",
-          "description": "The name of the language model to use for the agent's main interactions. Should be in the form: provider/model-name.",
-          "environment": [
-            {
-              "value": "anthropic/claude-1.2",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-2.0",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-2.1",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-3-5-sonnet-20240620",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-3-haiku-20240307",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-3-opus-20240229",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-3-sonnet-20240229",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "anthropic/claude-instant-1.2",
-              "variables": "ANTHROPIC_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo-0125",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo-0301",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo-0613",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo-1106",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo-16k",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-3.5-turbo-16k-0613",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-0125-preview",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-0314",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-0613",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-1106-preview",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-32k",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-32k-0314",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-32k-0613",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-turbo",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-turbo-preview",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4-vision-preview",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4o",
-              "variables": "OPENAI_API_KEY"
-            },
-            {
-              "value": "openai/gpt-4o-mini",
-              "variables": "OPENAI_API_KEY"
-            }
-          ]
-        }
-      },
-      "environment": [
-        "TAVILY_API_KEY"
-      ]
-    }
-  }
-}
--->
+```bash
+az login
+```
+
+### 2. Ensure Azure CLI is up to date
+
+```bash
+az upgrade
+```
+
+### 3. Create a Resource Group
+
+```bash
+az group create --name web-app-simple-rg --location eastus
+```
+
+### 4. Create Azure Container Registry
+
+Replace `<container-registry-name>` with your unique registry name.
+
+```bash
+az acr create --resource-group web-app-simple-rg \
+--name <container-registry-name> --sku Basic
+```
+
+### 5. Build and Push Docker Image
+
+```bash
+az acr build \
+  --resource-group web-app-simple-rg \
+  --registry <container-registry-name> \
+  --image webappsimple:latest .
+```
+
+### 6. Create App Service Plan
+
+```bash
+az appservice plan create \
+--name webplan \
+--resource-group web-app-simple-rg \
+--sku B1 \
+--is-linux
+```
+
+### 7. Deploy to Azure Web App
+
+```bash
+SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+az webapp create \
+--resource-group web-app-simple-rg \
+--plan webplan --name <container-registry-name> \
+--assign-identity [system] \
+--role AcrPull \
+--scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/web-app-simple-rg \
+--acr-use-identity --acr-identity [system] \
+--container-image-name <container-registry-name>.azurecr.io/webappsimple:latest 
+```
+
+### 8. Configure Environment Variables
+
+After deployment, set all the required environment variables in the Azure Web App Configuration section in the Azure Portal or use the following Azure CLI command:
+
+```bash
+az webapp config appsettings set --resource-group web-app-simple-rg --name <container-registry-name> --settings AZURE_OPENAI_API_KEY=<value> AZURE_OPENAI_ENDPOINT=<value> ...
+```

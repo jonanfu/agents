@@ -94,7 +94,7 @@ Dada la siguiente lista de temas [{lista}], genera un JSON con la siguiente estr
 
 {{
     "trainingName": "{training_name}",
-    "description": "<Descripción detallada del curso>",
+    "description": "{description}",
     "attachment": "{url}",
     "topics": [
         {{

@@ -89,11 +89,10 @@ class TopicsState(TypedDict):
 class GenerateTopicsState(TypedDict):
     training_name: str
     description: str
-    index_name: str
+    document_id: str
     url: Optional[str]
     topics_list: List[str]
     topics_json: List[Dict[str, Any]]
-    status: str
 
 
 class FeedbackState(TypedDict):

@@ -22,6 +22,7 @@ class Config:
     # Azure Search Configuration
     VECTOR_STORE_ADDRESS = os.getenv("VECTOR_STORE_ADDRESS")
     VECTOR_STORE_PASSWORD = os.getenv("VECTOR_STORE_PASSWORD")
+    VECTOR_STORE_INDEX_NAME = os.getenv("VECTOR_STORE_INDEX_NAME")
 
     # Azure Text Embedding Configuration
     AZURE_TEXT_EMBEDDING_ENDPOINT = os.getenv("AZURE_TEXT_EMBEDDING_ENDPOINT")

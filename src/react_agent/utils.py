@@ -14,11 +14,11 @@ from langchain_openai import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.indexes import SearchIndexClient
+from langchain.schema import Document   
 
 from react_agent.configuration import Config
 import json
 import logging
-import re
 
 
 config = Config()
@@ -76,70 +76,85 @@ def load_text_embedding_model() -> AzureOpenAIEmbeddings:
     )
 
 
-def load_vector_store(index_name: str, embeddings: AzureOpenAIEmbeddings) -> AzureSearch:
+def load_vector_store( embeddings: AzureOpenAIEmbeddings) -> AzureSearch:
     return AzureSearch(
         azure_search_endpoint=config.VECTOR_STORE_ADDRESS,
         azure_search_key=config.VECTOR_STORE_PASSWORD,
-        index_name=index_name,
+        index_name=config.VECTOR_STORE_INDEX_NAME,
         embedding_function=embeddings.embed_query
     )
 
 
-def clean_text(text: str) -> str:
-    """Limpia el texto eliminando espacios extra y caracteres especiales innecesarios."""
-    text = re.sub(r'\s+', ' ', text)  # Reemplaza múltiples espacios con uno solo
-    text = text.strip()  # Elimina espacios al inicio y final
-    return text
-
-def save_embeddings(index_name: str, pdf_path: str):
-    """Guarda los embeddings en Azure Search."""
-
-    embeddings = load_text_embedding_model()
-    vector_store = load_vector_store(index_name, embeddings)
-    loader = PyPDFLoader(pdf_path)
-
-    documents = loader.load()
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    docs = text_splitter.split_documents(documents)
-
-    vector_store.add_documents(documents=docs)
+def save_embeddings(document_id: str, pdf_path: str):
+    """Guarda los embeddings en Azure Search."""  
+    embeddings = load_text_embedding_model()  
+    vector_store = load_vector_store(embeddings)  
+    loader = PyPDFLoader(pdf_path)  
+    documents = loader.load()  
+  
+    # Dividir el texto en fragmentos para indexarlo  
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)  
+    docs = text_splitter.split_documents(documents)  
+  
+    indexed_docs = [  
+        Document(  
+            page_content=doc.page_content,  # Contenido del fragmento  
+            metadata={  # Agregar metadatos  
+                "id": f"{document_id}_{i}",  # Genera un ID único para cada fragmento  
+                "document_id": document_id,  
+                "page_number": i + 1  # Número de página como metadato (opcional)  
+            }  
+        )  
+        for i, doc in enumerate(docs)  
+    ]  
+  
+    vector_store.add_documents(documents=indexed_docs)  
+    logging.info(f"Documentos indexados con ID: {document_id}")
 
     
+def generate_topics(document_id: str) -> List[str]:  
+    """  
+    Genera topics para el índice de Azure Search basado en document_id.  
+    """  
+    vector_store = load_vector_store(load_text_embedding_model())  
+  
+    # Realizar la búsqueda en el vector store  
+    query = "*"  # Si deseas buscar todos los documentos relacionados  
+    search_type = "similarity"  # O el tipo de búsqueda que necesitas (ajusta según tu caso)  
+  
+    try:  
+        search_results = vector_store.search(query=query, search_type=search_type, filter=f"metadata/document_id eq '{document_id}'")  
+    except Exception as e:  
+        logging.error(f"Error al buscar en el vector store: {e}")  
+        return []  
+  
+    # Validar si se encontraron documentos  
+    if not search_results:  
+        logging.error(f"No se encontraron documentos con document_id: {document_id}")  
+        return []  
+  
+    model = load_model()  
+    prompt = PromptTemplate(  
+        input_variables=["content"],  
+        template=TOPICS_GET_PROMPT,  
+    )  
+    chain = LLMChain(llm=model, prompt=prompt)  
+  
+    # Generar temas para cada fragmento del documento  
+    topics = []  
+    for result in search_results:  
+        content = result["content"]  
+        result_topics = chain.run(content)  
+        topics.append(result_topics)  
+  
+    return topics  
 
-def generate_topics(index_name: str) -> List[str]:
-    """Genera topics para el índice de Azure Search."""
-    model = load_model()
-    
-    index_client = SearchIndexClient(endpoint=config.VECTOR_STORE_ADDRESS,
-                                credential=AzureKeyCredential(config.VECTOR_STORE_PASSWORD))
 
-    result = index_client.get_search_client(index_name)
-
-    docs = result.search(search_text="*")
-
-    prompt = PromptTemplate(
-        input_variables=["content"],
-        template=TOPICS_GET_PROMPT,
-    )
-
-    # Crear la cadena para procesar el texto y obtener los temas
-    chain = LLMChain(llm=model, prompt=prompt)
-
-# Generar los temas para cada fragmento del documento
-    topics = []
-    for doc in docs:
-        content = doc["content"]
-        result = chain.run(content)  # Generar los temas del contenido
-        topics.append(result)
-    
-    return topics
-
-
-def generate_json_topics(lista_topics: List[str], training_name: str, url: str) -> Dict[str, Any]:
+def generate_json_topics(lista_topics: List[str], training_name: str, description: str, url: str) -> Dict[str, Any]:
     """Genera un JSON con los temas para el índice de Azure Search."""
     model = load_model()
 
-    prompt = GENERATE_JSON_TOPICS_PROMPT.format(lista=lista_topics, training_name=training_name, url=url)
+    prompt = GENERATE_JSON_TOPICS_PROMPT.format(lista=lista_topics, training_name=training_name, description=description, url=url)
     response = model.invoke(prompt)    
 
     if not response or not response.content:
@@ -149,20 +164,7 @@ def generate_json_topics(lista_topics: List[str], training_name: str, url: str) 
         result = json.loads(response.content)
         return result
 
-def save_topics(json_topics: Dict[str, Any], container_name: str):
-    """Guarda el JSON de temas en Cosmos DB."""
-    client = CosmosClient(config.COSMOS_ENDPOINT, credential=config.COSMOS_KEY)
-    database = client.get_database_client(config.COSMOS_DATABASE_NAME)
-    container = database.create_container_if_not_exists (
-        id=container_name
-    )
 
-    try:
-        container.create_item(json_topics)
-        return json_topics
-    except Exception as e:
-        logging.error(f"Error al guardar en Cosmos DB: {str(e)}")
-        return json_topics
 
 
 

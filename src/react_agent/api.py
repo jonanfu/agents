@@ -4,6 +4,8 @@ from react_agent.graph import question_agent, topics_agent, feedback_agent, cont
 from react_agent.state import QuestionState, TopicsState, FeedbackState, GenerateTopicsState
 import logging
 from typing import List, Dict, Any
+import traceback
+
 app = FastAPI()
 
 # Definir el modelo Pydantic para el request
@@ -76,7 +78,7 @@ async def chat(request: ChatRequest):
     logging.info(f"Procesando request: {initial_state}")
     print(f"Procesando request: {initial_state}")
 
-    final_state = await topics_agent.invoke(initial_state)
+    final_state = await topics_agent.ainvoke(initial_state)
     return {
         "topic": request.topic,
         "question": request.question,
@@ -89,19 +91,28 @@ async def generate_topics(request: TopicsRequest):
     """
     Genera topics para un texto dado.
     """
-    initial_state = GenerateTopicsState(
-        training_name=request.training_name,
-        description=request.description,
-        url=request.url,
-        status="start",
-        topics_list=[],
-        topics_json=[]
-    )   
+    try:
+        # Estado inicial
+        initial_state = GenerateTopicsState(
+            training_name=request.training_name,
+            description=request.description,
+            url=request.url,
+            status="start",
+            topics_list=[],
+            topics_json=[]
+        )
+        
+        # Invocación del agente de contenido
+        final_state = await content_agent.ainvoke(initial_state)
 
-    final_state = await content_agent.ainvoke(initial_state)
-    return {
-        "topics_json": final_state["topics_json"]
-    }
+        return {
+            "topics_json": final_state["topics_json"]
+        }
+
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        logging.error(f"Ocurrió un error inesperado: {e}\nTraceback: {error_trace}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 @app.post("/generate_feedback")
 async def generate_feedback(cuestionarioData: Dict):

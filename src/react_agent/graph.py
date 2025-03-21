@@ -35,7 +35,7 @@ def generate_questions_node(state: QuestionState) -> QuestionState:
         # Crear un QuestionState temporal para pasar a la función de utils
         
         # Generar preguntas usando la función de utils
-        questions = generate_questions(state, model)
+        questions = generate_questions(nuevo_estado, model)
         nuevo_estado["questions"] = questions
 
         logging.info("Preguntas generadas:")
@@ -99,70 +99,148 @@ question_agent.name = "Question Generation"
 
 # Codigo para el chat
 # Función para inicializar el chatbot con el prompt del tema
-def initialize_chat(state: TopicsState):
-    print('entra initialize')
-    model = load_model()
-    prompt = TOPICS_PROMPT.format(topic=state["topic"])
+def initialize_chat(state: TopicsState):  
+    print('entra initialize')  
+    model = load_model()  
+    topic = state["topic"]  
+  
+    # Consultar en Azure Search AI usando el topic  
+    vector_store = load_vector_store(load_text_embedding_model())  
+    query = topic  
+    search_type = "similarity"  # Ajustar según tu implementación de Azure Search AI  
+    try:  
+        search_results = vector_store.search(query=query, search_type=search_type)  
+    except Exception as e:  
+        logging.error(f"Error al buscar en Azure Search AI: {e}")  
+        search_results = []  
+  
+    # Crear un mensaje del sistema  
+    system_message = {"role": "system", "content": SYSTEM_PROMPT}  
+  
+    if search_results:  
+        # Combinar los resultados encontrados en un solo contenido  
+        search_content = "\n".join([result.page_content for result in search_results])  
 
-    # Crear un mensaje del sistema para la generación de tópicos
-    system_message = {"role": "system", "content": SYSTEM_PROMPT}
+  
+        # Pasar los resultados al modelo para mejorar la redacción  
+        prompt = f"Mejora la redacción de la siguiente información sobre el tema '{topic}':\n\n{search_content}"  
+        internal_message = {"role": "user", "content": prompt, "visible": False}  
+  
+        # Obtener la respuesta mejorada del modelo  
+        messages = [system_message, internal_message]  
+        response = model.invoke(messages)  
+  
+        # Crear un mensaje de asistente con la respuesta mejorada  
+        assistant_message = {"role": "assistant", "content": response.content}  
+  
+        # Inicializamos el estado con el mensaje del sistema y la respuesta del asistente  
+        return {  
+            "topic": topic,  
+            "question": None,  
+            "status": "chatbot",  
+            "response": response.content,  
+            "id_user": state["id_user"],  
+            "messages": [system_message, assistant_message],  # Aquí inicializamos messages  
+        }  
+    else:  
+        # Si no se encontraron resultados, usar el modelo directamente  
+        logging.info(f"No se encontraron resultados en Azure Search para el topic: {topic}")  
+        prompt = TOPICS_PROMPT.format(topic=topic)  
+  
+        internal_message = {"role": "user", "content": prompt, "visible": False}  
+  
+        # Obtener la respuesta del modelo directamente  
+        messages = [system_message, internal_message]  
+        response = model.invoke(messages)  
+  
+        # Crear un mensaje de asistente con los tópicos  
+        assistant_message = {"role": "assistant", "content": response.content}  
+  
+        # Inicializamos el estado con el mensaje del sistema y la respuesta del asistente  
+        return {  
+            "topic": topic,  
+            "question": None,  
+            "status": "chatbot",  
+            "response": response.content,  
+            "id_user": state["id_user"],  
+            "messages": [system_message, assistant_message],  # Aquí inicializamos messages  
+        }  
     
-    # Crear un mensaje interno para solicitar tópicos (no se muestra al usuario)
-    internal_message = {"role": "user", "content": prompt, "visible": False}
 
-    # Obtener la respuesta del modelo con los tópicos
-    messages = [system_message, internal_message]
-    response = model.invoke(messages)
-
-    # Crear un mensaje de asistente con los tópicos (este es el primer mensaje que ve el usuario)
-    assistant_message = {
-        "role": "assistant", 
-        "content": response.content
-    }
-    
-    # Inicializamos el estado con el mensaje del sistema y la respuesta del asistente
-    return {
-        "topic": state["topic"],
-        "question": None,
-        "status": "done",
-        "response": response.content,
-        "id_user": state["id_user"],
-        "messages": [system_message, assistant_message],  # Aquí inicializamos messages
-    }
 
 # Código para el chat
-def chatbot(state: TopicsState) -> TopicsState:
-    print('entra chatbot')
-    model = load_model()
-
-    # Asegurar que el historial de mensajes contiene la introducción del tema
-    if not state["messages"]:
-        system_message = {"role": "system", "content": SYSTEM_PROMPT}
-        initial_prompt = TOPICS_PROMPT.format(topic=state["topic"])
-        internal_message = {"role": "user", "content": initial_prompt, "visible": False}
-        response = model.invoke([system_message, internal_message])
-        assistant_message = {"role": "assistant", "content": response.content}
-
-        state["messages"] = [system_message, internal_message, assistant_message]
-
-    # Agregar la pregunta actual al historial
-    if state["question"]:
-        user_message = {"role": "user", "content": state["question"]}
-        state["messages"].append(user_message)
-
-    # Invocar el modelo con el historial de mensajes
-    response = model.invoke(state["messages"])
-    assistant_message = {"role": "assistant", "content": response.content}
-    state["messages"].append(assistant_message)
-
-    return {
-        "topic": state["topic"],
-        "question": state["question"],
-        "status": "done",
-        "response": response.content,
-        "id_user": state["id_user"],
-        "messages": state["messages"],
-    }
+def chatbot(state: TopicsState) -> TopicsState:  
+    print('entra chatbot')  
+    model = load_model()  
+  
+    # Asegurar que el historial de mensajes contiene la introducción del tema  
+    if not state["messages"]:  
+        system_message = {"role": "system", "content": SYSTEM_PROMPT}  
+        initial_prompt = TOPICS_PROMPT.format(topic=state["topic"])  
+        internal_message = {"role": "user", "content": initial_prompt, "visible": False}  
+        response = model.invoke([system_message, internal_message])  
+        assistant_message = {"role": "assistant", "content": response.content}  
+  
+        state["messages"] = [system_message, internal_message, assistant_message]  
+  
+    # Agregar la pregunta actual al historial  
+    if state["question"]:  
+        user_message = {"role": "user", "content": state["question"]}  
+        state["messages"].append(user_message)  
+  
+        # Consultar en Azure Search AI usando la pregunta o el topic  
+        vector_store = load_vector_store(load_text_embedding_model())  
+        query = state["question"] or state["topic"]  
+        search_type = "similarity"  # Ajustar según tu implementación de Azure Search AI  
+  
+        try:  
+            search_results = vector_store.search(query=query, search_type=search_type)  
+        except Exception as e:  
+            logging.error(f"Error al buscar en Azure Search AI: {e}")  
+            search_results = []  
+  
+        # Crear un mensaje del sistema  
+        system_message = {"role": "system", "content": SYSTEM_PROMPT}  
+  
+        if search_results:  
+            # Combinar los resultados encontrados en un solo contenido  
+            search_content = "\n".join([result.page_content for result in search_results])  
+  
+            # Pasar los resultados al modelo para mejorar la redacción  
+            prompt = f"Mejora la redacción de la siguiente información sobre el tema/pregunta '{query}':\n\n{search_content}"  
+            internal_message = {"role": "user", "content": prompt, "visible": False}  
+  
+            # Obtener la respuesta mejorada del modelo  
+            messages = [system_message, internal_message]  
+            response = model.invoke(messages)  
+  
+            # Crear un mensaje de asistente con la respuesta mejorada  
+            assistant_message = {"role": "assistant", "content": response.content}  
+            state["messages"].append(assistant_message)  
+        else:  
+            # Si no se encontraron resultados, usar el modelo directamente  
+            logging.info(f"No se encontraron resultados en Azure Search para la consulta: {query}")  
+            prompt = f"Genera una respuesta para la siguiente pregunta o tema:\n\n{query}"  
+  
+            internal_message = {"role": "user", "content": prompt, "visible": False}  
+  
+            # Obtener la respuesta del modelo directamente  
+            messages = state["messages"] + [internal_message]  
+            response = model.invoke(messages)  
+  
+            # Crear un mensaje de asistente con la respuesta generada  
+            assistant_message = {"role": "assistant", "content": response.content}  
+            state["messages"].append(assistant_message)  
+  
+    # Devolver el estado actualizado  
+    return {  
+        "topic": state["topic"],  
+        "question": state["question"],  
+        "status": "chatbot",  
+        "response": state["messages"][-1]["content"],  # Último mensaje del asistente  
+        "id_user": state["id_user"],  
+        "messages": state["messages"],  
+    } 
 
 
 # Definir una función de decisión para el flujo
@@ -227,8 +305,8 @@ def save_embeddings_node(state: GenerateTopicsState) -> GenerateTopicsState:
     logging.info("Guardando embeddings en Azure Search...")
     logging.info(state)
     nuevo_estado = state.copy()
-    nuevo_estado["index_name"] = str(uuid.uuid4())
-    save_embeddings(nuevo_estado["index_name"], nuevo_estado["url"])
+    nuevo_estado["document_id"] = str(uuid.uuid4())
+    save_embeddings(nuevo_estado["document_id"], nuevo_estado["url"])
     nuevo_estado["status"] = "saved"
     return nuevo_estado
 
@@ -237,7 +315,7 @@ def generate_topics_node(state: GenerateTopicsState) -> GenerateTopicsState:
     logging.info("Generando topics...")
     logging.info(state)
     nuevo_estado = state.copy()
-    topics_list = generate_topics(state["index_name"])
+    topics_list = generate_topics(nuevo_estado["document_id"])
     nuevo_estado["topics_list"] = topics_list
     nuevo_estado["status"] = "generated"
     return nuevo_estado
@@ -247,18 +325,9 @@ def generate_json_topics_node(state: GenerateTopicsState) -> GenerateTopicsState
     logging.info("Generando JSON de topics...")
     logging.info(state)
     nuevo_estado = state.copy()
-    topics_json = generate_json_topics(nuevo_estado["topics_list"], nuevo_estado["training_name"], nuevo_estado["url"])
+    topics_json = generate_json_topics(nuevo_estado["topics_list"], nuevo_estado["training_name"], nuevo_estado["description"], nuevo_estado["url"])
     nuevo_estado["topics_json"] = topics_json
     nuevo_estado["status"] = "generated_json"
-    return nuevo_estado
-
-def save_topics_node(state: GenerateTopicsState) -> GenerateTopicsState:
-    """Guardar JSON de topics en Cosmos DB."""
-    logging.info("Guardando JSON de topics en Cosmos DB...")
-    logging.info(state)
-    nuevo_estado = state.copy()
-    save_topics(state["topics_json"], "Topics")
-    nuevo_estado["status"] = "saved"
     return nuevo_estado
 
 def route(state: GenerateTopicsState):
@@ -274,7 +343,6 @@ workflow_content.add_node("topics_from_training_description", topics_from_traini
 workflow_content.add_node("save_embeddings", save_embeddings_node)
 workflow_content.add_node("generate_topics", generate_topics_node)
 workflow_content.add_node("generate_json_topics", generate_json_topics_node)
-#workflow_content.add_node("save_topics", save_topics_node)
     
 # Definir transiciones
 workflow_content.add_conditional_edges(
