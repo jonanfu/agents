@@ -89,6 +89,16 @@ TOPICS_PROMPT = """
     Devuelve solo el texto en formato Markdown sin explicaciones adicionales.
     """
 
+INITIALIZE_PROMPT = """
+    Analiza el siguiente contenido: {search_content}. Si el contenido está relacionado con el tema {topic}, mejora su redacción para que sea más claro y atractivo para el usuario. 
+    Si el contenido no está relacionado con el tema {topic} consulta informacion csobre el tema.
+"""
+CHATBOT_PROMPT = """
+    Analiza el siguiente contenido: {search_content}. Si el contenido está relacionado con el tema {topic}, mejora su redacción para que sea más claro y atractivo para el usuario. 
+    Si el contenido no está relacionado con el tema {topic}, redacta información relevante y precisa en respuesta a la siguiente pregunta del usuario: {question}.
+"""
+
+
 GENERATE_JSON_TOPICS_PROMPT = """
 Dada la siguiente lista de temas [{lista}], genera un JSON con la siguiente estructura:
 

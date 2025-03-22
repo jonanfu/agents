@@ -123,7 +123,7 @@ def initialize_chat(state: TopicsState):
 
   
         # Pasar los resultados al modelo para mejorar la redacción  
-        prompt = f"Mejora la redacción de la siguiente información sobre el tema '{topic}':\n\n{search_content}"  
+        prompt = INITIALIZE_PROMPT.format(search_content=search_content, topic=topic)
         internal_message = {"role": "user", "content": prompt, "visible": False}  
   
         # Obtener la respuesta mejorada del modelo  
@@ -207,7 +207,7 @@ def chatbot(state: TopicsState) -> TopicsState:
             search_content = "\n".join([result.page_content for result in search_results])  
   
             # Pasar los resultados al modelo para mejorar la redacción  
-            prompt = f"Mejora la redacción de la siguiente información sobre el tema/pregunta '{query}':\n\n{search_content}"  
+            prompt = CHATBOT_PROMPT.format(search_content=search_content, topic=state["topic"], question=state["question"])
             internal_message = {"role": "user", "content": prompt, "visible": False}  
   
             # Obtener la respuesta mejorada del modelo  
